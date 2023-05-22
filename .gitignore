@@ -8,3 +8,5 @@ old/python/*.pb
 .cache
 .vscode/
 __pycache__
+*.so
+*.o

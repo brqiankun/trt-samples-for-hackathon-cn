@@ -92,11 +92,22 @@ def run(shape, scalar):
     #    print("[%2d]%s->" % (i, "Input " if i < nInput else "Output"), engine.get_tensor_dtype(lTensorName[i]), engine.get_tensor_shape(lTensorName[i]), context.get_tensor_shape(lTensorName[i]), lTensorName[i])
 
     bufferH = []
-    for i in range(nInput, nIO):
-        bufferH.append(np.empty((shape[0], ) + tuple(context.get_tensor_shape(lTensorName[i])), dtype=trt.nptype(engine.get_tensor_dtype(lTensorName[i]))))
-    bufferD = []
+    print("nInput: {}, nIO: {}".format(nInput, nIO))
     for i in range(nIO):
-        bufferD.append(cudart.cudaMalloc(bufferH[i].nbytes)[1])
+        print((shape[0], ))
+        print(tuple(context.get_tensor_shape(lTensorName[i])))
+        print((shape[0], ) + tuple(context.get_tensor_shape(lTensorName[i])))
+        bufferH.append(np.empty((shape[0], ) + tuple(context.get_tensor_shape(lTensorName[i])), dtype=trt.nptype(engine.get_tensor_dtype(lTensorName[i]))))   
+        print(type(bufferH[-1]))
+        # trt.nptype(engine.get_tensor_dtype(lTensorName[i])) numpy has no attribute bool modify tensorrt/__init__.py L166 bool to bool_
+    bufferD = []
+    print("nIO: {}".format(nIO))
+    print("len(bufferH): {}".format(len(bufferH)))
+    for i in range(nIO):
+        _, dev_p = cudart.cudaMalloc(bufferH[i].nbytes)
+        assert _ == cudart.cudaError_t.cudaSuccess
+        bufferD.append(dev_p)
+        # bufferD.append(cudart.cudaMalloc(bufferH[i].nbytes)[1])   # ????
 
     bufferH[0] = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
 
@@ -109,17 +120,18 @@ def run(shape, scalar):
     context.execute(shape[0], bufferD)
 
     for i in range(nInput, nIO):
-        cudart.cudaMemcpy(bufferH[i].ctypes.data, bufferD[i], bufferH[i].nbytes, cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost)
-
+        _ = cudart.cudaMemcpy(bufferH[i].ctypes.data, bufferD[i], bufferH[i].nbytes, cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost)
+        assert _[0] == cudart.cudaError_t.cudaSuccess
+        print(type(_), _)
     outputCPU = addScalarCPU(bufferH[:nInput], scalar)
-    """
+
     for i in range(nInput):
         printArrayInfomation(bufferH[i])
     for i in range(nInput, nIO):
         printArrayInfomation(bufferH[i])
     for i in range(nInput, nIO):
         printArrayInfomation(outputCPU[i - nInput])
-    """
+
     check(bufferH[nInput:][0], outputCPU[0], True)
 
     for b in bufferD:
@@ -129,13 +141,13 @@ def run(shape, scalar):
 if __name__ == "__main__":
     os.system("rm -rf ./*.plan")
 
-    run([32], 1)
+    # run([32], 1)
     run([32, 32], 1)
-    run([16, 16, 16], 1)
-    run([8, 8, 8, 8], 1)
-    run([32], 1)
-    run([32, 32], 1)
-    run([16, 16, 16], 1)
-    run([8, 8, 8, 8], 1)
+    # run([16, 16, 16], 1)
+    # run([8, 8, 8, 8], 1)
+    # run([32], 1)
+    # run([32, 32], 1)
+    # run([16, 16, 16], 1)
+    # run([8, 8, 8, 8], 1)
 
     print("Test all finish!")
