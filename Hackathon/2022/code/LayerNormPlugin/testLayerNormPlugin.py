@@ -3,8 +3,7 @@ import ctypes
 import numpy as np
 from time import time_ns
 import tensorrt as trt
-import pycuda.autoinit
-import pycuda.driver as cuda
+from cuda import cudart
 
 useFile         = False
 ipnutDataFile   = './layerNormIO-bs64.npz'
@@ -83,7 +82,7 @@ def getLayerNormPlugin():
 
 def run():
     testCase = "test<fp%s,bs=%d,sl=%d,nEmbed=%d>"%(['32','16'][0],nBS,nSL,nEmbedding)
-    logger = trt.Logger(trt.Logger.ERROR)
+    logger = trt.Logger(trt.Logger.VERBOSE)
     trt.init_libnvinfer_plugins(logger, '')
     ctypes.cdll.LoadLibrary(soFilePath)
 
@@ -107,17 +106,34 @@ def run():
 
     network.mark_output(pluginLayer.get_output(0))
     
+    print(type(network))
+    print("network.num_layers: {}".format(network.num_layers))
+    print(network.num_inputs)
+    print(network.num_outputs)
+    print(network.name)
+
+    print("---------------build engine begin------------")
     engine = builder.build_engine(network, config)
+    print("---------------build engine end------------")
+    engineString = builder.build_serialized_network(network, config)
+    if engineString is not None:
+        print("build engine done")
 
     context = engine.create_execution_context()
     context.set_binding_shape(0,[nBS,nSL,nEmbedding])
     context.set_binding_shape(1,[nEmbedding])
     context.set_binding_shape(2,[nEmbedding])
     print("Binding all? %s"%(["No","Yes"][int(context.all_binding_shapes_specified)]))
-    stream  = cuda.Stream()
+    # stream  = cuda.Stream()
+    _, stream = cudart.cudaStreamCreate()
+    assert _ == cudart.cudaError_t.cudaSuccess
+    _, stream_flags = cudart.cudaStreamGetFlags(stream)
+    print("stream_flags: {}".format(stream_flags))
 
     nInput = np.sum([ engine.binding_is_input(i) for i in range(engine.num_bindings) ])
+    print("nInput: {}".format(nInput))
     nOutput = engine.num_bindings - nInput
+    print("nOutput: {}".format(nOutput))
     for i in range(engine.num_bindings):
         print("input ->" if engine.binding_is_input(i) else "output->",engine.get_binding_dtype(i),engine.get_binding_shape(i),context.get_binding_shape(i))
 
@@ -129,17 +145,29 @@ def run():
 
     bufferD = []
     for i in range(engine.num_bindings):
-        bufferD.append( cuda.mem_alloc(bufferH[i].nbytes) )
+        # bufferD.append( cuda.mem_alloc(bufferH[i].nbytes) )
+        print("bufferH[{}].nbytes: {}".format(i, bufferH[i].nbytes))
+        _, dev_p = cudart.cudaMalloc(bufferH[i].nbytes)
+        assert _ == cudart.cudaError_t.cudaSuccess
+        print(dev_p)
+        bufferD.append(dev_p)
+
 
     for i in range(nInput):
-        cuda.memcpy_htod_async(bufferD[i], np.ascontiguousarray(bufferH[i].reshape(-1)), stream)
-
-    context.execute_async_v2(bufferD, stream.handle)
-    stream.synchronize()
+        # cuda.memcpy_htod_async(bufferD[i], np.ascontiguousarray(bufferH[i].reshape(-1)), stream)
+        print("H2D : cudaMemcpyAsync(bufferH[{}])------".format(i))
+        _ = cudart.cudaMemcpyAsync(bufferD[i], np.ascontiguousarray(bufferH[i].reshape(-1)).data, bufferH[i].nbytes, cudart.cudaMemcpyKind.cudaMemcpyHostToDevice, stream)
+        assert _[0] == cudart.cudaError_t.cudaSuccess
+    # context.execute_async_v2(bufferD, stream.handle)
+    context.execute_async_v2(bufferD, stream_flags)
+    # stream.synchronize()
+    cudart.cudaStreamSynchronize(stream)
 
     for i in range(nOutput):
-        cuda.memcpy_dtoh_async(bufferH[nInput+i], bufferD[nInput+i], stream)
-    stream.synchronize()
+        _ = cudart.cudaMemcpyAsync(bufferH[nInput+i].data, bufferD[nInput+i], bufferH[nInput + i].nbytes, cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost, stream)
+        assert _[0] == cudart.cudaError_t.cudaSuccess
+        # cuda.memcpy_dtoh_async(bufferH[nInput+i], bufferD[nInput+i], stream)
+    cudart.cudaStreamSynchronize(stream)
     
     for i in range(nInput):
         temp = bufferH[i]
@@ -154,13 +182,17 @@ def run():
     
 
     for i in range(10):
-        context.execute_async_v2(bufferD, stream.handle)
-    stream.synchronize()
+        # context.execute_async_v2(bufferD, stream.handle)
+        context.execute_async_v2(bufferD, stream_flags)
+    # stream.synchronize()
+    cudart.cudaStreamSynchronize(stream)
             
     time0 = time_ns()
     for i in range(nTime):
-        context.execute_async_v2(bufferD, stream.handle)
-    stream.synchronize()
+        # context.execute_async_v2(bufferD, stream.handle)
+        context.execute_async_v2(bufferD, stream_flags)
+    # stream.synchronize()
+    cudart.cudaStreamSynchronize(stream)
     time1 = time_ns()
     print(testCase+"average %fms per inference\n"%((time1-time0)/nTime/1000000))
 

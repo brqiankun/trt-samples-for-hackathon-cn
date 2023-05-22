@@ -19,8 +19,8 @@ all: $(TARGET_SO)
 
 .PHONY: test
 test:
-	make clean
-	make
+	#make clean
+	#make
 	python3 $(SOURCE_PY)
 
 .PHONY: clean

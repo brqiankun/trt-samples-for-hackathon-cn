@@ -97,7 +97,7 @@ template __global__ void layerNormKernel<half, 32, 8>(const half*, const half*, 
 int LayerNormPlugin::enqueue(const PluginTensorDesc* inputDesc, const PluginTensorDesc* outputDesc, const void* const* inputs, void* const* outputs, void* workspace, cudaStream_t stream) noexcept
 {
     const int gridSize = inputDesc[0].dims.d[0] * inputDesc[0].dims.d[1];
-
+    printf("------------gridSize: %d\n",gridSize);
     if (inputDesc[0].type == DataType::kFLOAT)
     {
         constexpr int VPT = 16 / sizeof(float);
