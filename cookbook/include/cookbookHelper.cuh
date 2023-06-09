@@ -27,7 +27,7 @@
 #include <map>
 #include <string>
 #include <thread>
-#include <unistd.h>
+#include <unistd.h>   //unistd.h 是 C 和 C++ 程序设计语言中提供对 POSIX 操作系统 API 的访问功能的头文件的名称。
 #include <vector>
 
 // result value check of cuda runtime
