@@ -210,6 +210,7 @@ void printArrayInfomation(const T *pArray, Dims32 dim, std::string name = std::s
 
     return;
 }
+// Explicit instantiation 
 template void printArrayInfomation(const float *, Dims32, std::string, bool, int);
 template void printArrayInfomation(const half *, Dims32, std::string, bool, int);
 template void printArrayInfomation(const int *, Dims32, std::string, bool, int);

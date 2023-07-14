@@ -31,7 +31,7 @@ graph.cleanup().toposort()
 onnx.save(gs.export_onnx(graph), "model-02-01.onnx")
 
 for node in graph.nodes:
-    if node.op == "Identity" and node.name == "myIdentity0":  # find the place we want to add ndoe
+    if node.op == "Identity" and node.name == "myIdentity0":  # find the place we want to add node
         constant0 = gs.Constant(name="constant0", values=np.ones(shape=[1, 1, 1, 1], dtype=np.float32))  # construct the new variable and node
         tensor3 = gs.Variable("tensor3", np.float32, None)
         newNode = gs.Node("Add", "myAdd", inputs=[node.outputs[0], constant0], outputs=[tensor3])

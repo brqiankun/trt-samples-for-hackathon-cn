@@ -53,7 +53,7 @@ print("Succeeding creating model in OnnxGraphSurgeon!")
 
 # Run the model in Onnx Runtime ------------------------------------------------
 print("Onnxruntime using device: %s" % onnxruntime.get_device())
-session = onnxruntime.InferenceSession(onnxFile, providers=["CUDAExecutionProvider"])
+session = onnxruntime.InferenceSession(onnxFile, providers=["CPUExecutionProvider"])
 
 for i, inputTensor in enumerate(session.get_inputs()):
     print("Input %2d: %s, %s, %s" % (i, inputTensor.name, inputTensor.shape, inputTensor.type))

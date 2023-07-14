@@ -38,7 +38,7 @@ for node in graph.nodes:
     if node.op == "Add" and node.name == "myAdd":
         index = node.o().inputs.index(node.outputs[0])  # find the index of output tensor of this node in the next node
         node.o().inputs[index] = node.inputs[0]  # replace the input tensor of the next node as the input tensor of this node
-        node.outputs = []  # a optional step: clean the output tensor of this node, so that this node can be recognized as uselesss node
+        node.outputs = []  # a optional step: clean the output tensor of this node, so that this node can be recognized as uselesss node 输出设置为空则为无效节点
 
 graph.cleanup().toposort()  # the Add node will be removed during graph clean
 onnx.save(gs.export_onnx(graph), "model-03-02.onnx")

@@ -27,7 +27,7 @@ tensor3 = gs.Variable("tensor3", np.float32, None)
 constant0 = gs.Constant(name="constant0", values=np.ones(shape=[1, 3, 3, 3], dtype=np.float32))  # define constant tensor (constant in ONNX)
 constant1 = gs.Constant(name="constant1", values=np.ones(shape=[1], dtype=np.float32))
 
-node0 = gs.Node("Conv", "myConv", inputs=[tensor0, constant0], outputs=[tensor1])  # defione node
+node0 = gs.Node("Conv", "myConv", inputs=[tensor0, constant0], outputs=[tensor1])  # define node
 node0.attrs = OrderedDict([
     ["dilations", [1, 1]],
     ["kernel_shape", [3, 3]],
@@ -41,4 +41,4 @@ node2 = gs.Node("Relu", "myRelu", inputs=[tensor2], outputs=[tensor3])
 graph = gs.Graph(nodes=[node0, node1, node2], inputs=[tensor0], outputs=[tensor3])  # define graph
 
 graph.cleanup().toposort()  # clean the graph before saving as ONNX file
-onnx.save(gs.export_onnx(graph), "model-01.onnx")
+onnx.save(gs.export_onnx(graph), "model-01.onnx")   # export_onnx将gs保存为onnx格式，之后使用onnxapi进行保存

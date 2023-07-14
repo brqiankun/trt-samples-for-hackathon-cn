@@ -50,7 +50,7 @@ for node in graph2.nodes:
     if node.op == "Add" and node.name == "myAdd":
         newNode = gs.Node("Sub", "mySub", inputs=node.inputs, outputs=node.outputs)
         graph2.nodes.append(newNode)
-        node.outputs = []
+        node.outputs = []  # 后续被cleanup() 清除
 
 graph2.cleanup().toposort()
 onnx.save(gs.export_onnx(graph2), "model-04-03.onnx")

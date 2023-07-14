@@ -42,7 +42,7 @@ testFileList = sorted(glob(dataPath + "test/*.jpg"))
 inferenceImage = dataPath + "8.png"
 
 # for FP16 mode
-bUseFP16Mode = False
+bUseFP16Mode = True
 # for INT8 model
 bUseINT8Mode = False
 nCalibration = 1
@@ -121,7 +121,9 @@ for epoch in range(10):
             n += xTest.shape[0]
         print("%s, epoch %2d, loss = %f, test acc = %f" % (dt.now(), epoch + 1, loss.data, acc / n))
 
+t.save(model, "./model.pth")
 print("Succeeded building model in pyTorch!")
+# raise RuntimeError
 
 # Export model as ONNX file ----------------------------------------------------
 t.onnx.export(model, t.randn(1, 1, nHeight, nWidth, device="cuda"), onnxFile, input_names=["x"], output_names=["y", "z"], do_constant_folding=True, verbose=True, keep_initializers_as_inputs=True, opset_version=12, dynamic_axes={"x": {0: "nBatchSize"}, "z": {0: "nBatchSize"}})
@@ -164,6 +166,7 @@ if engineString == None:
 print("Succeeded building engine!")
 with open(trtFile, "wb") as f:
     f.write(engineString)
+
 engine = trt.Runtime(logger).deserialize_cuda_engine(engineString)
 nIO = engine.num_io_tensors
 lTensorName = [engine.get_tensor_name(i) for i in range(nIO)]
@@ -174,6 +177,7 @@ context.set_input_shape(lTensorName[0], [1, 1, nHeight, nWidth])
 for i in range(nIO):
     print("[%2d]%s->" % (i, "Input " if i < nInput else "Output"), engine.get_tensor_dtype(lTensorName[i]), engine.get_tensor_shape(lTensorName[i]), context.get_tensor_shape(lTensorName[i]), lTensorName[i])
 
+# raise RuntimeError
 bufferH = []
 data = cv2.imread(inferenceImage, cv2.IMREAD_GRAYSCALE).astype(np.float32).reshape(1, 1, nHeight, nWidth)
 bufferH.append(np.ascontiguousarray(data))

@@ -79,4 +79,23 @@ TRT不支持的节点：
 推荐nvidia-docker ??
 
 
+使用nsys时，使用nsys profile --trace=cuda,nvtx,osrt 等来指定要trace的内容，opengl存在bug会导致seg fault
+
+cuda kernel launch bound
+使用cuda graph来解决launch bound(kernel 从host端发起调用到gpu端真正开始执行的间隔)
+
+
+
+#### plugin
+以.so的形式插入到网络中实现某些算子
+先尝试原生Layer来保证计算正确性，尝试TRT自带Plugin，之后再考虑自己编写。
+
+plugin不参与层融合layer fuse
+在运行期，TRT为Plugin提供输入输出张量的地址，workspace地址，以及所在的stream。
+
+重叠计算和数据拷贝的时间，增加GPU利用率
+使一个engine供多个线程使用
+优化kernel调用，减少launch bound的发生
+
+使用cuda event和cuda stream等异步API时，建议使用pinned-memory。在分配内存后，防止操作系统将可分页的内存交换到其他位置，在GPU端执行完毕返回数据时重新拷贝。
 
